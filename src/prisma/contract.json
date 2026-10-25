@@ -12,6 +12,25 @@
   "domain": {
     "namespaces": {
       "public": {
+        "enum": {
+          "AccountRole": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "customer",
+                "value": "customer"
+              },
+              {
+                "name": "agent",
+                "value": "agent"
+              },
+              {
+                "name": "admin",
+                "value": "admin"
+              }
+            ]
+          }
+        },
         "models": {
           "Account": {
             "fields": {
@@ -50,6 +69,19 @@
                   "kind": "scalar"
                 }
               },
+              "role": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "AccountRole",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -76,6 +108,9 @@
                 "password": {
                   "column": "password"
                 },
+                "role": {
+                  "column": "role"
+                },
                 "updatedAt": {
                   "column": "updatedAt"
                 }
@@ -94,6 +129,13 @@
         "entries": {
           "table": {
             "Account": {
+              "checks": [
+                {
+                  "expression": "\"role\" IN ('customer', 'agent', 'admin')",
+                  "name": "Account_role_check_7e859979",
+                  "prefix": "Account_role_check"
+                }
+              ],
               "columns": {
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
@@ -124,6 +166,21 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "role": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "default": {
+                    "kind": "literal",
+                    "value": "customer"
+                  },
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "AccountRole",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "dataType": "pg/timestamptz",
@@ -145,13 +202,23 @@
                 }
               ]
             }
+          },
+          "valueSet": {
+            "AccountRole": {
+              "kind": "valueSet",
+              "values": [
+                "customer",
+                "agent",
+                "admin"
+              ]
+            }
           }
         },
         "id": "public",
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "9be67c50f3374bd58b611dfff69b72e62b4d24a68011131e84989dd0d1bfc9d8"
+    "storageHash": "a86d2fa17f5164d8ef45e30607b367ba213ceeee161ef9a716cb91f9b6e087c2"
   },
   "execution": {
     "executionHash": "381dc01b25037996bee88180088acfcfe92ca3fc0b641368c3749ebaaa8ef057",

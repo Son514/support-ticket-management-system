@@ -9,6 +9,7 @@ import {
   type AccountField,
   type LoginField,
 } from "@/lib/account-schema";
+import { destinationForRole } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession } from "@/lib/session";
 import { db } from "@/prisma/db";
@@ -138,6 +139,7 @@ export async function loginAccount(
   };
 
   let accountId: number | null = null;
+  let accountRole = "customer";
 
   try {
     const account = await db.orm.public.Account.where({ email }).first();
@@ -155,6 +157,7 @@ export async function loginAccount(
     }
 
     accountId = account.id;
+    accountRole = account.role;
   } catch (error) {
     console.error("Failed to look up account", error);
 
@@ -179,5 +182,5 @@ export async function loginAccount(
     };
   }
 
-  redirect("/dashboard");
+  redirect(destinationForRole(accountRole));
 }

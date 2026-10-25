@@ -1,10 +1,18 @@
 // use prisma-8
 
+enum AccountRole {
+  @@type("pg/text@1")
+  customer = "customer"
+  agent    = "agent"
+  admin    = "admin"
+}
+
 model Account {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String      @unique
   password  String
+  role      AccountRole @default(customer)
   createdAt temporal.CreatedAtString
   updatedAt temporal.UpdatedAtString
 }
