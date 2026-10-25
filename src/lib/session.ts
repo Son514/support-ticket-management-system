@@ -83,7 +83,15 @@ export async function getSession(): Promise<{ accountId: number } | null> {
 
   const [payload, signature] = token.split(".");
 
-  if (!payload || !signature || !signaturesMatch(signature, sign(payload))) {
+  if (!payload || !signature) {
+    return null;
+  }
+
+  try {
+    if (!signaturesMatch(signature, sign(payload))) {
+      return null;
+    }
+  } catch {
     return null;
   }
 

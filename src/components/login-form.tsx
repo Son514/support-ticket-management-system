@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useActionState, useEffect, useTransition } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
@@ -26,10 +26,12 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [state, formAction, isPending] = useActionState(
+  const [state, formAction, isActionPending] = useActionState(
     loginAccount,
     initialState
   )
+  const [isTransitionPending, startTransition] = useTransition()
+  const isPending = isActionPending || isTransitionPending
   const {
     register,
     handleSubmit,
@@ -63,7 +65,9 @@ export function LoginForm({
       formData.set(key, value)
     }
 
-    formAction(formData)
+    startTransition(() => {
+      formAction(formData)
+    })
   })
 
   return (

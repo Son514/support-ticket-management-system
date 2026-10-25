@@ -112,7 +112,7 @@ export async function registerAccount(
     };
   }
 
-  redirect("/");
+  redirect("/login");
 }
 
 export async function loginAccount(
@@ -179,5 +179,5 @@ export async function loginAccount(
     };
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
