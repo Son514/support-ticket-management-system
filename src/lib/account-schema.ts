@@ -2,6 +2,17 @@ import { z } from "zod";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const emailField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, "Please enter your email address.")
+  .max(254, "Email must be 254 characters or fewer.")
+  .refine(
+    (value) => value === "" || EMAIL_PATTERN.test(value),
+    "Please enter a valid email address.",
+  );
+
 export const accountSchema = z
   .object({
     name: z
@@ -9,16 +20,7 @@ export const accountSchema = z
       .trim()
       .min(1, "Please enter your full name.")
       .max(100, "Name must be 100 characters or fewer."),
-    email: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .min(1, "Please enter your email address.")
-      .max(254, "Email must be 254 characters or fewer.")
-      .refine(
-        (value) => value === "" || EMAIL_PATTERN.test(value),
-        "Please enter a valid email address.",
-      ),
+    email: emailField,
     password: z
       .string()
       .min(8, "Password must be at least 8 characters long.")
@@ -35,6 +37,15 @@ export const accountSchema = z
     }
   });
 
+export const loginSchema = z.object({
+  email: emailField,
+  password: z.string().min(1, "Please enter your password."),
+});
+
 export type AccountInput = z.infer<typeof accountSchema>;
 
 export type AccountField = keyof AccountInput;
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+export type LoginField = keyof LoginInput;

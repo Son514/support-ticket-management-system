@@ -3,8 +3,14 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { accountSchema, type AccountField } from "@/lib/account-schema";
-import { hashPassword } from "@/lib/password";
+import {
+  accountSchema,
+  loginSchema,
+  type AccountField,
+  type LoginField,
+} from "@/lib/account-schema";
+import { hashPassword, verifyPassword } from "@/lib/password";
+import { createSession } from "@/lib/session";
 import { db } from "@/prisma/db";
 
 export type RegisterState = {
@@ -13,9 +19,35 @@ export type RegisterState = {
   errors?: Partial<Record<AccountField, string>>;
 };
 
+export type LoginState = {
+  status: "idle" | "error";
+  message?: string;
+  errors?: Partial<Record<LoginField, string>>;
+};
+
 function text(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function fieldErrors<Field extends string>(
+  error: z.ZodError,
+): Partial<Record<Field, string>> {
+  const flattened = z.flattenError(error).fieldErrors as Record<
+    string,
+    string[] | undefined
+  >;
+  const errors: Partial<Record<Field, string>> = {};
+
+  for (const [field, messages] of Object.entries(flattened)) {
+    const message = messages?.[0];
+
+    if (message) {
+      errors[field as Field] = message;
+    }
+  }
+
+  return errors;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -39,18 +71,10 @@ export async function registerAccount(
   });
 
   if (!parsed.success) {
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
-    const errors: Partial<Record<AccountField, string>> = {};
-
-    for (const [field, messages] of Object.entries(fieldErrors)) {
-      const message = messages?.[0];
-
-      if (message) {
-        errors[field as AccountField] = message;
-      }
-    }
-
-    return { status: "error", errors };
+    return {
+      status: "error",
+      errors: fieldErrors<AccountField>(parsed.error),
+    };
   }
 
   const { name, email, password } = parsed.data;
@@ -85,6 +109,73 @@ export async function registerAccount(
     return {
       status: "error",
       message: "Could not create your account. Please try again.",
+    };
+  }
+
+  redirect("/");
+}
+
+export async function loginAccount(
+  _previousState: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const parsed = loginSchema.safeParse({
+    email: text(formData, "email"),
+    password: text(formData, "password"),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      errors: fieldErrors<LoginField>(parsed.error),
+    };
+  }
+
+  const { email, password } = parsed.data;
+  const invalidCredentials: LoginState = {
+    status: "error",
+    message: "Invalid email or password.",
+  };
+
+  let accountId: number | null = null;
+
+  try {
+    const account = await db.orm.public.Account.where({ email }).first();
+
+    if (!account) {
+      // Keep the response time comparable to a real verification attempt.
+      await hashPassword(password);
+      return invalidCredentials;
+    }
+
+    const passwordMatches = await verifyPassword(password, account.password);
+
+    if (!passwordMatches) {
+      return invalidCredentials;
+    }
+
+    accountId = account.id;
+  } catch (error) {
+    console.error("Failed to look up account", error);
+
+    return {
+      status: "error",
+      message: "Could not sign you in. Please try again.",
+    };
+  }
+
+  if (accountId === null) {
+    return invalidCredentials;
+  }
+
+  try {
+    await createSession(accountId);
+  } catch (error) {
+    console.error("Failed to create session", error);
+
+    return {
+      status: "error",
+      message: "Sign in is currently unavailable. Please try again later.",
     };
   }
 
