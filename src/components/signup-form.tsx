@@ -1,21 +1,39 @@
+"use client"
+
+import { useActionState } from "react"
+
+import { registerAccount, type RegisterState } from "@/app/server/account"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+const initialState: RegisterState = { status: "idle" }
+
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+  const [state, formAction, isPending] = useActionState(
+    registerAccount,
+    initialState
+  )
+  const errors = state.errors ?? {}
+
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form
+      className={cn("flex flex-col gap-6", className)}
+      {...props}
+      action={formAction}
+    >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">Create your account</h1>
@@ -23,54 +41,91 @@ export function SignupForm({
             Fill in the form below to create your account
           </p>
         </div>
-        <Field>
+        <Field data-invalid={Boolean(errors.name)}>
           <FieldLabel htmlFor="name">Full Name</FieldLabel>
           <Input
             id="name"
+            name="name"
             type="text"
             placeholder="John Doe"
             required
+            autoComplete="name"
+            defaultValue={state.values?.name}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "name-error" : undefined}
             className="bg-background"
           />
+          <FieldError id="name-error">{errors.name}</FieldError>
         </Field>
-        <Field>
+        <Field data-invalid={Boolean(errors.email)}>
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
             id="email"
+            name="email"
             type="email"
             placeholder="m@example.com"
             required
+            autoComplete="email"
+            defaultValue={state.values?.email}
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
             className="bg-background"
           />
           <FieldDescription>
             We&apos;ll use this to contact you. We will not share your email
             with anyone else.
           </FieldDescription>
+          <FieldError id="email-error">{errors.email}</FieldError>
         </Field>
-        <Field>
+        <Field data-invalid={Boolean(errors.password)}>
           <FieldLabel htmlFor="password">Password</FieldLabel>
           <Input
             id="password"
+            name="password"
             type="password"
             required
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "password-error" : undefined}
             className="bg-background"
           />
           <FieldDescription>
             Must be at least 8 characters long.
           </FieldDescription>
+          <FieldError id="password-error">{errors.password}</FieldError>
         </Field>
-        <Field>
+        <Field data-invalid={Boolean(errors.confirmPassword)}>
           <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
           <Input
             id="confirm-password"
+            name="confirmPassword"
             type="password"
             required
+            minLength={8}
+            maxLength={128}
+            autoComplete="new-password"
+            aria-invalid={Boolean(errors.confirmPassword)}
+            aria-describedby={
+              errors.confirmPassword ? "confirm-password-error" : undefined
+            }
             className="bg-background"
           />
           <FieldDescription>Please confirm your password.</FieldDescription>
+          <FieldError id="confirm-password-error">
+            {errors.confirmPassword}
+          </FieldError>
         </Field>
+        {state.message ? (
+          <Field>
+            <FieldError>{state.message}</FieldError>
+          </Field>
+        ) : null}
         <Field>
-          <Button type="submit">Create Account</Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Creating account…" : "Create Account"}
+          </Button>
         </Field>
         <FieldSeparator>Or continue with</FieldSeparator>
         <Field>
