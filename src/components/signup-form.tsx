@@ -1,8 +1,15 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
 
 import { registerAccount, type RegisterState } from "@/app/server/account"
+import {
+  accountSchema,
+  type AccountField,
+  type AccountInput,
+} from "@/lib/account-schema"
 import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
@@ -27,13 +34,49 @@ export function SignupForm({
     registerAccount,
     initialState
   )
-  const errors = state.errors ?? {}
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<AccountInput>({
+    resolver: zodResolver(accountSchema),
+    mode: "onTouched",
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  })
+
+  useEffect(() => {
+    if (!state.errors) {
+      return
+    }
+
+    for (const [field, message] of Object.entries(state.errors)) {
+      if (message) {
+        setError(field as AccountField, { type: "server", message })
+      }
+    }
+  }, [state, setError])
+
+  const onSubmit = handleSubmit((values) => {
+    const formData = new FormData()
+
+    for (const [key, value] of Object.entries(values)) {
+      formData.set(key, value)
+    }
+
+    formAction(formData)
+  })
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8" action={formAction}>
+          <form className="p-6 md:p-8" onSubmit={onSubmit} noValidate>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create your account</h1>
@@ -45,35 +88,35 @@ export function SignupForm({
                 <FieldLabel htmlFor="name">Full Name</FieldLabel>
                 <Input
                   id="name"
-                  name="name"
                   type="text"
                   placeholder="John Doe"
                   required
                   autoComplete="name"
-                  defaultValue={state.values?.name}
                   aria-invalid={Boolean(errors.name)}
                   aria-describedby={errors.name ? "name-error" : undefined}
+                  {...register("name")}
                 />
-                <FieldError id="name-error">{errors.name}</FieldError>
+                <FieldError id="name-error">{errors.name?.message}</FieldError>
               </Field>
               <Field data-invalid={Boolean(errors.email)}>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
                   placeholder="m@example.com"
                   required
                   autoComplete="email"
-                  defaultValue={state.values?.email}
                   aria-invalid={Boolean(errors.email)}
                   aria-describedby={errors.email ? "email-error" : undefined}
+                  {...register("email")}
                 />
                 <FieldDescription>
                   We&apos;ll use this to contact you. We will not share your
                   email with anyone else.
                 </FieldDescription>
-                <FieldError id="email-error">{errors.email}</FieldError>
+                <FieldError id="email-error">
+                  {errors.email?.message}
+                </FieldError>
               </Field>
               <Field>
                 <Field className="grid grid-cols-2 gap-4">
@@ -81,7 +124,6 @@ export function SignupForm({
                     <FieldLabel htmlFor="password">Password</FieldLabel>
                     <Input
                       id="password"
-                      name="password"
                       type="password"
                       required
                       minLength={8}
@@ -91,9 +133,10 @@ export function SignupForm({
                       aria-describedby={
                         errors.password ? "password-error" : undefined
                       }
+                      {...register("password")}
                     />
                     <FieldError id="password-error">
-                      {errors.password}
+                      {errors.password?.message}
                     </FieldError>
                   </Field>
                   <Field data-invalid={Boolean(errors.confirmPassword)}>
@@ -102,7 +145,6 @@ export function SignupForm({
                     </FieldLabel>
                     <Input
                       id="confirm-password"
-                      name="confirmPassword"
                       type="password"
                       required
                       minLength={8}
@@ -114,9 +156,10 @@ export function SignupForm({
                           ? "confirm-password-error"
                           : undefined
                       }
+                      {...register("confirmPassword")}
                     />
                     <FieldError id="confirm-password-error">
-                      {errors.confirmPassword}
+                      {errors.confirmPassword?.message}
                     </FieldError>
                   </Field>
                 </Field>

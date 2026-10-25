@@ -1,19 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
+import { accountSchema, type AccountField } from "@/lib/account-schema";
 import { hashPassword } from "@/lib/password";
 import { db } from "@/prisma/db";
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export type RegisterField = "name" | "email" | "password" | "confirmPassword";
 
 export type RegisterState = {
   status: "idle" | "error";
   message?: string;
-  errors?: Partial<Record<RegisterField, string>>;
-  values?: { name?: string; email?: string };
+  errors?: Partial<Record<AccountField, string>>;
 };
 
 function text(formData: FormData, key: string): string {
@@ -34,46 +31,29 @@ export async function registerAccount(
   _previousState: RegisterState,
   formData: FormData,
 ): Promise<RegisterState> {
-  const name = text(formData, "name").trim();
-  const email = text(formData, "email").trim().toLowerCase();
-  const password = text(formData, "password");
-  const confirmPassword = text(formData, "confirmPassword");
+  const parsed = accountSchema.safeParse({
+    name: text(formData, "name"),
+    email: text(formData, "email"),
+    password: text(formData, "password"),
+    confirmPassword: text(formData, "confirmPassword"),
+  });
 
-  const errors: Partial<Record<RegisterField, string>> = {};
+  if (!parsed.success) {
+    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    const errors: Partial<Record<AccountField, string>> = {};
 
-  if (!name) {
-    errors.name = "Please enter your full name.";
-  } else if (name.length > 100) {
-    errors.name = "Name must be 100 characters or fewer.";
+    for (const [field, messages] of Object.entries(fieldErrors)) {
+      const message = messages?.[0];
+
+      if (message) {
+        errors[field as AccountField] = message;
+      }
+    }
+
+    return { status: "error", errors };
   }
 
-  if (!email) {
-    errors.email = "Please enter your email address.";
-  } else if (email.length > 254) {
-    errors.email = "Email must be 254 characters or fewer.";
-  } else if (!EMAIL_PATTERN.test(email)) {
-    errors.email = "Please enter a valid email address.";
-  }
-
-  if (!password) {
-    errors.password = "Please enter a password.";
-  } else if (password.length < 8) {
-    errors.password = "Password must be at least 8 characters long.";
-  } else if (password.length > 128) {
-    errors.password = "Password must be 128 characters or fewer.";
-  }
-
-  if (!confirmPassword) {
-    errors.confirmPassword = "Please confirm your password.";
-  } else if (confirmPassword !== password) {
-    errors.confirmPassword = "Passwords do not match.";
-  }
-
-  const values = { name, email };
-
-  if (Object.keys(errors).length > 0) {
-    return { status: "error", errors, values };
-  }
+  const { name, email, password } = parsed.data;
 
   const existing = await db.orm.public.Account.where({ email }).first();
 
@@ -81,7 +61,6 @@ export async function registerAccount(
     return {
       status: "error",
       errors: { email: "An account with this email already exists." },
-      values,
     };
   }
 
@@ -98,7 +77,6 @@ export async function registerAccount(
       return {
         status: "error",
         errors: { email: "An account with this email already exists." },
-        values,
       };
     }
 
@@ -107,7 +85,6 @@ export async function registerAccount(
     return {
       status: "error",
       message: "Could not create your account. Please try again.",
-      values,
     };
   }
 
