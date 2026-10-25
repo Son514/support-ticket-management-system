@@ -73,6 +73,11 @@ export async function createSession(accountId: number): Promise<void> {
   });
 }
 
+export async function destroySession(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(COOKIE_NAME);
+}
+
 export async function getSession(): Promise<{ accountId: number } | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;

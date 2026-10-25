@@ -11,7 +11,7 @@ import {
 } from "@/lib/account-schema";
 import { destinationForRole } from "@/lib/auth";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { createSession } from "@/lib/session";
+import { createSession, destroySession } from "@/lib/session";
 import { db } from "@/prisma/db";
 
 export type RegisterState = {
@@ -183,4 +183,9 @@ export async function loginAccount(
   }
 
   redirect(destinationForRole(accountRole));
+}
+
+export async function logoutAccount(): Promise<void> {
+  await destroySession();
+  redirect("/login");
 }

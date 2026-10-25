@@ -1,5 +1,8 @@
 "use client"
 
+import { useTransition } from "react"
+
+import { logoutAccount } from "@/app/server/account"
 import {
   Avatar,
   AvatarFallback,
@@ -32,6 +35,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const [isPending, startTransition] = useTransition()
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -98,10 +102,13 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={isPending}
+              onClick={() => startTransition(() => void logoutAccount())}
+            >
               <LogOutIcon
               />
-              Log out
+              {isPending ? "Logging out…" : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
