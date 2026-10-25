@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
 import { loginAccount, type LoginState } from "@/app/server/account"
+import { AuthHero } from "@/components/auth-hero"
 import { loginSchema, type LoginField, type LoginInput } from "@/lib/account-schema"
 import { cn } from "cn"
 
@@ -182,13 +183,7 @@ export function LoginForm({
               </FieldDescription>
             </FieldGroup>
           </form>
-          <div className="relative hidden bg-muted md:block">
-            <img
-              src="https://picsum.photos/200/300?grayscale"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
+          <AuthHero />
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
