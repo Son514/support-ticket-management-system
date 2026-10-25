@@ -1,5 +1,37 @@
+# dependencies
 node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# builds
 dist/
+build/
+
+# env
 .env
+.env.*
+!.env.example
+
+# prisma / composer local state
 /.alchemy
 /.prisma-composer
+/migrations/app/refs/
+
+# caches / test output
+.eslintcache
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
