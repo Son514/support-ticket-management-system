@@ -7,15 +7,15 @@ function contentDisposition(fileName: string): string {
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-export function attachmentResponse(attachment: {
-  fileName: string;
-  contentType: string;
-  size: number;
-  data: Uint8Array;
-}): Response {
-  const bytes = Uint8Array.from(attachment.data);
-
-  return new Response(bytes.buffer as ArrayBuffer, {
+export function attachmentResponse(
+  attachment: {
+    fileName: string;
+    contentType: string;
+    size: number;
+  },
+  body: BodyInit,
+): Response {
+  return new Response(body, {
     headers: {
       "Content-Type": attachment.contentType,
       "Content-Length": String(attachment.size),

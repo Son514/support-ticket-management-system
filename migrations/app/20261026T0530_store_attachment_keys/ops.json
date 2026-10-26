@@ -1,0 +1,205 @@
+[
+  {
+    "id": "data.clear-ticket-attachments",
+    "label": "Delete existing ticket attachments",
+    "summary": "Deletes bytea attachment rows before switching to object storage",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "TicketAttachment"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "delete ticket attachment rows",
+        "sql": "DELETE FROM \"public\".\"TicketAttachment\""
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "dropColumn.TicketAttachment.data",
+    "label": "Drop column \"data\" from \"TicketAttachment\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "data",
+        "table": "TicketAttachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"data\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"data\" on \"TicketAttachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop column \"data\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" DROP COLUMN \"data\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"data\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "column \"data\" on \"TicketAttachment\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "column.TicketAttachment.storageKey",
+    "label": "Add column storageKey to TicketAttachment",
+    "summary": "Adds column storageKey to table TicketAttachment",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "storageKey",
+        "table": "TicketAttachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"storageKey\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "column \"storageKey\" on \"TicketAttachment\""
+        }
+      },
+      {
+        "description": "ensure table \"TicketAttachment\" is empty before adding NOT NULL column without default",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"TicketAttachment\" LIMIT 1) AS \"result\"",
+        "params": [],
+        "meta": {
+          "requiredColumn": {
+            "table": "TicketAttachment",
+            "column": "storageKey",
+            "reason": "newField"
+          }
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"storageKey\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" ADD COLUMN \"storageKey\" text NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"storageKey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"storageKey\" on \"TicketAttachment\""
+        }
+      },
+      {
+        "description": "verify column \"storageKey\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey",
+          "NO"
+        ]
+      },
+      {
+        "description": "verify column \"storageKey\" has type \"text\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey",
+          "text"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.TicketAttachment.TicketAttachment_storageKey_key",
+    "label": "Add unique constraint on \"TicketAttachment\" (storageKey)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "TicketAttachment_storageKey_key",
+        "table": "TicketAttachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"TicketAttachment_storageKey_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "TicketAttachment_storageKey_key",
+          "public",
+          "\"public\".\"TicketAttachment\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"TicketAttachment_storageKey_key\" on \"TicketAttachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"TicketAttachment_storageKey_key\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" ADD CONSTRAINT \"TicketAttachment_storageKey_key\" UNIQUE (\"storageKey\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"TicketAttachment_storageKey_key\" exists on (storageKey)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "TicketAttachment_storageKey_key",
+          "public",
+          "\"public\".\"TicketAttachment\"",
+          "u",
+          "[\"storageKey\"]"
+        ]
+      }
+    ]
+  }
+]

@@ -68,10 +68,10 @@ model Ticket {
 
 model TicketAttachment {
   id          Int    @id @default(autoincrement())
+  storageKey  String @unique
   fileName    String
   contentType String
   size        Int
-  data        Bytes
   ticketId    Int
   ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }

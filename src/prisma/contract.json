@@ -453,13 +453,6 @@
                   "kind": "scalar"
                 }
               },
-              "data": {
-                "nullable": false,
-                "type": {
-                  "codecId": "pg/bytea@1",
-                  "kind": "scalar"
-                }
-              },
               "fileName": {
                 "nullable": false,
                 "type": {
@@ -478,6 +471,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "storageKey": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -512,9 +512,6 @@
                 "contentType": {
                   "column": "contentType"
                 },
-                "data": {
-                  "column": "data"
-                },
                 "fileName": {
                   "column": "fileName"
                 },
@@ -523,6 +520,9 @@
                 },
                 "size": {
                   "column": "size"
+                },
+                "storageKey": {
+                  "column": "storageKey"
                 },
                 "ticketId": {
                   "column": "ticketId"
@@ -875,11 +875,6 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
-                "data": {
-                  "codecId": "pg/bytea@1",
-                  "dataType": "pg/bytea",
-                  "nullable": false
-                },
                 "fileName": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -897,6 +892,11 @@
                 "size": {
                   "codecId": "pg/int4@1",
                   "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "storageKey": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
                   "nullable": false
                 },
                 "ticketId": {
@@ -942,7 +942,13 @@
                   "id"
                 ]
               },
-              "uniques": []
+              "uniques": [
+                {
+                  "columns": [
+                    "storageKey"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
@@ -987,7 +993,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "338309c95dedc5ac73090773a50a5d74cdd5d1455627ec9f515708a7dd55b454"
+    "storageHash": "335d3b42cc48793d5bc93b197da202fac90803f384ec5713896cb25277bef987"
   },
   "execution": {
     "executionHash": "67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c",
