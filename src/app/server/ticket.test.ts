@@ -48,10 +48,12 @@ import {
   createTicket,
   getAgentTicket,
   getTicketAttachment,
+  getTicketById,
   listAgentQueue,
   listAllTickets,
   listTicketAttachments,
   listTicketsForAccount,
+  ticketExists,
 } from "./ticket";
 
 function formData(values: Record<string, string>): FormData {
@@ -366,6 +368,7 @@ describe("agent ticket detail queries", () => {
     mocks.ticketInclude.mockReturnValue({
       all: mocks.ticketAll,
       first: mocks.ticketFirst,
+      include: mocks.ticketInclude,
     });
 
     mocks.attachmentWhere.mockReturnValue({
@@ -400,6 +403,10 @@ describe("agent ticket detail queries", () => {
 
     expect(mocks.ticketInclude).toHaveBeenCalledWith(
       "account",
+      expect.any(Function),
+    );
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "assignee",
       expect.any(Function),
     );
   });
@@ -504,5 +511,60 @@ describe("listAllTickets", () => {
     await listAllTickets("open");
 
     expect(mocks.ticketWhere).toHaveBeenCalledWith({ status: "open" });
+  });
+});
+
+describe("admin ticket detail queries", () => {
+  beforeEach(() => {
+    mocks.ticketWhere.mockReset();
+    mocks.ticketSelect.mockReset();
+    mocks.ticketInclude.mockReset();
+    mocks.ticketFirst.mockReset();
+
+    mocks.ticketWhere.mockReturnValue({ select: mocks.ticketSelect });
+    mocks.ticketSelect.mockReturnValue({
+      include: mocks.ticketInclude,
+      first: mocks.ticketFirst,
+    });
+    mocks.ticketInclude.mockReturnValue({
+      include: mocks.ticketInclude,
+      first: mocks.ticketFirst,
+    });
+  });
+
+  it("loads any ticket with requester and assignee", async () => {
+    const row = {
+      id: 5,
+      title: "Cannot log in",
+      account: { name: "Jane", email: "jane@example.com" },
+      assignee: { name: "Mark", email: "mark@example.com" },
+    };
+    mocks.ticketFirst.mockResolvedValue(row);
+
+    await expect(getTicketById(5)).resolves.toEqual(row);
+
+    expect(mocks.ticketWhere).toHaveBeenCalledWith({ id: 5 });
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "account",
+      expect.any(Function),
+    );
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "assignee",
+      expect.any(Function),
+    );
+  });
+
+  it("returns null for a missing ticket", async () => {
+    mocks.ticketFirst.mockResolvedValue(null);
+
+    await expect(getTicketById(5)).resolves.toBeNull();
+  });
+
+  it("reports whether a ticket exists", async () => {
+    mocks.ticketFirst.mockResolvedValue({ id: 5 });
+    await expect(ticketExists(5)).resolves.toBe(true);
+
+    mocks.ticketFirst.mockResolvedValue(null);
+    await expect(ticketExists(5)).resolves.toBe(false);
   });
 });

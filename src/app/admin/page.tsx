@@ -146,9 +146,12 @@ export default async function AdminDashboardPage({
                   <TableRow key={ticket.id}>
                     <TableCell className="max-w-64">
                       <div className="grid gap-0.5">
-                        <span className="truncate font-medium">
+                        <Link
+                          href={`/admin/tickets/${ticket.id}`}
+                          className="truncate font-medium underline-offset-4 hover:underline"
+                        >
                           {ticket.title}
-                        </span>
+                        </Link>
                         <span className="text-xs text-muted-foreground">
                           {TICKET_CATEGORY_LABELS[ticket.category]}
                         </span>

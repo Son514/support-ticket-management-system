@@ -238,6 +238,7 @@ export async function getAgentTicket(agentId: number, ticketId: number) {
       "updatedAt",
     )
     .include("account", (account) => account.select("name", "email"))
+    .include("assignee", (assignee) => assignee.select("name", "email"))
     .first();
 }
 
@@ -279,4 +280,30 @@ export async function listAllTickets(status?: TicketStatus) {
     .include("assignee", (assignee) => assignee.select("name", "email"))
     .orderBy((ticket) => ticket.createdAt.desc())
     .all();
+}
+
+export async function getTicketById(ticketId: number) {
+  return db.orm.public.Ticket.where({ id: ticketId })
+    .select(
+      "id",
+      "title",
+      "description",
+      "category",
+      "priority",
+      "status",
+      "assigneeId",
+      "createdAt",
+      "updatedAt",
+    )
+    .include("account", (account) => account.select("name", "email"))
+    .include("assignee", (assignee) => assignee.select("name", "email"))
+    .first();
+}
+
+export async function ticketExists(ticketId: number): Promise<boolean> {
+  const ticket = await db.orm.public.Ticket.where({ id: ticketId })
+    .select("id")
+    .first();
+
+  return ticket !== null;
 }
