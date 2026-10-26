@@ -70,6 +70,6 @@ model TicketAttachment {
   contentType String
   size        Int
   data        Bytes
-  ticketId    Int    @unique
+  ticketId    Int
   ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }

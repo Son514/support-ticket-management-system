@@ -16,16 +16,56 @@ export const TICKET_STATUSES = [
   "closed",
 ] as const;
 
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+export const MAX_ATTACHMENTS = 5;
+
+export const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
 export const ACCEPTED_ATTACHMENT_TYPES = [
   "image/png",
   "image/jpeg",
-  "image/webp",
   "application/pdf",
 ] as const;
 
-const ACCEPTED_ATTACHMENT_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "pdf"];
+type AttachmentKind = "png" | "jpeg" | "pdf";
+
+const ATTACHMENT_KIND_BY_TYPE: Record<string, AttachmentKind> = {
+  "image/png": "png",
+  "image/jpeg": "jpeg",
+  "application/pdf": "pdf",
+};
+
+const ATTACHMENT_KIND_BY_EXTENSION: Record<string, AttachmentKind> = {
+  png: "png",
+  jpg: "jpeg",
+  jpeg: "jpeg",
+  pdf: "pdf",
+};
+
+const ATTACHMENT_SIGNATURES: Record<AttachmentKind, readonly number[]> = {
+  png: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  jpeg: [0xff, 0xd8, 0xff],
+  pdf: [0x25, 0x50, 0x44, 0x46, 0x2d],
+};
+
+const ATTACHMENT_CONTENT_TYPES: Record<AttachmentKind, string> = {
+  png: "image/png",
+  jpeg: "image/jpeg",
+  pdf: "application/pdf",
+};
+
+function attachmentKind(file: File): AttachmentKind | null {
+  const byType = ATTACHMENT_KIND_BY_TYPE[file.type];
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const byExtension = ATTACHMENT_KIND_BY_EXTENSION[extension];
+
+  if (byType && byExtension && byType !== byExtension) {
+    return null;
+  }
+
+  return byType ?? byExtension ?? null;
+}
 
 export type TicketCategory = (typeof TICKET_CATEGORIES)[number];
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
@@ -69,23 +109,69 @@ export const ticketSchema = z.object({
 
 export type TicketInput = z.infer<typeof ticketSchema>;
 
-export function validateAttachment(file: File): string | null {
+export async function validateAttachment(file: File): Promise<string | null> {
   if (file.size === 0) {
     return "The selected file is empty.";
   }
 
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return "Attachment must be 10 MB or smaller.";
+    return "Attachments must be 5 MB or smaller.";
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const hasAcceptedType = (
-    ACCEPTED_ATTACHMENT_TYPES as readonly string[]
-  ).includes(file.type);
+  const kind = attachmentKind(file);
 
-  if (!hasAcceptedType && !ACCEPTED_ATTACHMENT_EXTENSIONS.includes(extension)) {
-    return "Attachment must be a PNG, JPG, WEBP, or PDF file.";
+  if (!kind) {
+    return "Attachment must be a PNG, JPG, or PDF file.";
+  }
+
+  try {
+    const header = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    const signature = ATTACHMENT_SIGNATURES[kind];
+    const matches = signature.every((byte, index) => header[index] === byte);
+
+    if (!matches) {
+      return "File contents are not a valid PNG, JPG, or PDF file.";
+    }
+  } catch {
+    return "The selected file could not be read.";
   }
 
   return null;
+}
+
+export async function validateAttachments(files: File[]): Promise<{
+  valid: File[];
+  error: string | null;
+}> {
+  if (files.length > MAX_ATTACHMENTS) {
+    return {
+      valid: [],
+      error: `You can attach up to ${MAX_ATTACHMENTS} files.`,
+    };
+  }
+
+  const totalSize = files.reduce((total, file) => total + file.size, 0);
+
+  if (totalSize > MAX_TOTAL_ATTACHMENT_BYTES) {
+    return { valid: [], error: "Attachments must total 20 MB or less." };
+  }
+
+  const valid: File[] = [];
+
+  for (const file of files) {
+    const error = await validateAttachment(file);
+
+    if (error) {
+      return { valid, error: `${file.name}: ${error}` };
+    }
+
+    valid.push(file);
+  }
+
+  return { valid, error: null };
+}
+
+export function resolveAttachmentContentType(file: File): string {
+  const kind = attachmentKind(file);
+  return kind ? ATTACHMENT_CONTENT_TYPES[kind] : "application/octet-stream";
 }

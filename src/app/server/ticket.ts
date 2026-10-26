@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { fieldErrors } from "@/lib/field-errors";
 import {
+  resolveAttachmentContentType,
   ticketSchema,
-  validateAttachment,
+  validateAttachments,
   type TicketPriority,
   type TicketCategory,
 } from "@/lib/ticket-schema";
@@ -18,7 +19,7 @@ export type TicketField =
   | "description"
   | "category"
   | "priority"
-  | "attachment";
+  | "attachments";
 
 export type CreateTicketState = {
   status: "idle" | "error";
@@ -48,16 +49,15 @@ export async function createTicket(
     ? {}
     : fieldErrors<TicketField>(parsed.error);
 
-  const entry = formData.get("attachment");
-  const attachment =
-    entry instanceof File && entry.size > 0 ? entry : null;
+  const entries = formData.getAll("attachments");
+  const attachments = entries.filter(
+    (entry): entry is File => entry instanceof File,
+  );
+  const { valid: validAttachments, error: attachmentsError } =
+    await validateAttachments(attachments);
 
-  if (attachment) {
-    const attachmentError = validateAttachment(attachment);
-
-    if (attachmentError) {
-      errors.attachment = attachmentError;
-    }
+  if (attachmentsError) {
+    errors.attachments = attachmentsError;
   }
 
   if (!parsed.success || Object.keys(errors).length > 0) {
@@ -79,13 +79,13 @@ export async function createTicket(
         accountId: account.id,
       });
 
-      if (attachment) {
+      for (const attachment of validAttachments) {
         const data = new Uint8Array(await attachment.arrayBuffer());
 
         await tx.orm.public.TicketAttachment.create({
           ticketId: ticket.id,
           fileName: attachment.name,
-          contentType: attachment.type || "application/octet-stream",
+          contentType: resolveAttachmentContentType(attachment),
           size: attachment.size,
           data,
         });

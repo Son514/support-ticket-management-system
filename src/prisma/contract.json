@@ -849,9 +849,7 @@
               "foreignKeys": [
                 {
                   "index": {
-                    "unique": [
-                      "ticketId"
-                    ]
+                    "name": "TicketAttachment_ticketId_idx_2fe526c3"
                   },
                   "onDelete": "cascade",
                   "source": {
@@ -870,19 +868,22 @@
                   }
                 }
               ],
-              "indexes": [],
+              "indexes": [
+                {
+                  "columns": [
+                    "ticketId"
+                  ],
+                  "name": "TicketAttachment_ticketId_idx_2fe526c3",
+                  "prefix": "TicketAttachment_ticketId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
                 ]
               },
-              "uniques": [
-                {
-                  "columns": [
-                    "ticketId"
-                  ]
-                }
-              ]
+              "uniques": []
             }
           },
           "valueSet": {
@@ -927,7 +928,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "bb30061b6c226146c166118d96df880cbfa294cc4e3800642cdf1939be6cbddf"
+    "storageHash": "8a0f74415d3d1a13b66cf050efa34fc6acb10ac852eb6b3c8111be0d5f1f4308"
   },
   "execution": {
     "executionHash": "67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c",

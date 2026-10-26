@@ -8,12 +8,14 @@ import { PaperclipIcon, XIcon } from "lucide-react"
 
 import { createTicket, type CreateTicketState } from "@/app/server/ticket"
 import {
+  MAX_ATTACHMENTS,
+  MAX_TOTAL_ATTACHMENT_BYTES,
   TICKET_CATEGORIES,
   TICKET_CATEGORY_LABELS,
   TICKET_PRIORITIES,
   TICKET_PRIORITY_LABELS,
   ticketSchema,
-  validateAttachment,
+  validateAttachments,
   type TicketCategory,
   type TicketInput,
   type TicketPriority,
@@ -53,6 +55,10 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function fileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`
+}
+
 export function TicketForm({ className }: { className?: string }) {
   const [state, formAction, isActionPending] = useActionState(
     createTicket,
@@ -60,14 +66,18 @@ export function TicketForm({ className }: { className?: string }) {
   )
   const [isTransitionPending, startTransition] = useTransition()
   const isPending = isActionPending || isTransitionPending
-  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachments, setAttachments] = useState<File[]>([])
   const [fileError, setFileError] = useState<string | null>(null)
   const [fileTouched, setFileTouched] = useState(false)
   const [fileInputKey, setFileInputKey] = useState(0)
 
-  const serverAttachmentError = state.errors?.attachment ?? null
+  const serverAttachmentError = state.errors?.attachments ?? null
   const attachmentError =
     fileError ?? (fileTouched ? null : serverAttachmentError)
+  const totalAttachmentBytes = attachments.reduce(
+    (total, file) => total + file.size,
+    0
+  )
 
   const {
     register,
@@ -95,7 +105,7 @@ export function TicketForm({ className }: { className?: string }) {
         continue
       }
 
-      if (field === "attachment") {
+      if (field === "attachments") {
         continue
       }
 
@@ -103,19 +113,38 @@ export function TicketForm({ className }: { className?: string }) {
     }
   }, [state, setError])
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(event.target.files ?? [])
 
-    setFileTouched(true)
-    setAttachment(file)
-    setFileError(file ? validateAttachment(file) : null)
-  }
-
-  function removeAttachment() {
-    setAttachment(null)
-    setFileError(null)
     setFileTouched(true)
     setFileInputKey((key) => key + 1)
+
+    if (selected.length === 0) {
+      return
+    }
+
+    const existingKeys = new Set(attachments.map(fileKey))
+    const additions = selected.filter(
+      (file) => !existingKeys.has(fileKey(file))
+    )
+    const { valid, error } = await validateAttachments([
+      ...attachments,
+      ...additions,
+    ])
+
+    if (error) {
+      setFileError(error)
+      return
+    }
+
+    setAttachments(valid)
+    setFileError(null)
+  }
+
+  function removeAttachment(index: number) {
+    setAttachments((current) => current.filter((_, i) => i !== index))
+    setFileError(null)
+    setFileTouched(true)
   }
 
   const onSubmit = handleSubmit((values) => {
@@ -129,8 +158,10 @@ export function TicketForm({ className }: { className?: string }) {
       formData.set(key, value)
     }
 
-    if (attachment) {
-      formData.set("attachment", attachment)
+    if (attachments.length > 0) {
+      for (const file of attachments) {
+        formData.append("attachments", file)
+      }
     }
 
     startTransition(() => {
@@ -277,46 +308,66 @@ export function TicketForm({ className }: { className?: string }) {
               </Field>
 
               <Field data-invalid={Boolean(attachmentError)}>
-                <FieldLabel htmlFor="attachment">
-                  Attachment (optional)
+                <FieldLabel htmlFor="attachments">
+                  Attachments (optional)
                 </FieldLabel>
                 <Input
                   key={fileInputKey}
-                  id="attachment"
-                  name="attachment"
+                  id="attachments"
+                  name="attachments"
                   type="file"
-                  accept=".png,.jpg,.jpeg,.webp,.pdf"
+                  multiple
+                  accept=".png,.jpg,.jpeg,.pdf"
                   onChange={handleFileChange}
                   aria-invalid={Boolean(attachmentError)}
                   aria-describedby={
-                    attachmentError ? "attachment-error" : "attachment-help"
+                    attachmentError
+                      ? "attachments-error"
+                      : "attachments-help"
                   }
                   className="file:mr-3 file:inline-flex file:h-7 file:items-center file:rounded-md file:border-0 file:bg-muted file:px-2 file:text-sm file:font-medium"
                 />
-                {attachment ? (
-                  <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                    <span className="flex min-w-0 items-center gap-2">
-                      <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{attachment.name}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {formatFileSize(attachment.size)}
-                      </span>
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={removeAttachment}
-                      aria-label="Remove attachment"
-                    >
-                      <XIcon />
-                    </Button>
-                  </div>
+                {attachments.length > 0 ? (
+                  <>
+                    <ul className="grid gap-2">
+                      {attachments.map((file, index) => (
+                        <li
+                          key={fileKey(file)}
+                          className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm"
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{file.name}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </span>
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => removeAttachment(index)}
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <XIcon />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-muted-foreground">
+                      {attachments.length} of {MAX_ATTACHMENTS} files ·{" "}
+                      {formatFileSize(totalAttachmentBytes)} of{" "}
+                      {formatFileSize(MAX_TOTAL_ATTACHMENT_BYTES)}
+                    </p>
+                  </>
                 ) : null}
-                <FieldDescription id="attachment-help">
-                  PNG, JPG, WEBP or PDF, up to 10 MB.
+                <FieldDescription id="attachments-help">
+                  PNG, JPG, JPEG or PDF. Max 5 MB per file, up to 5 files and 20
+                  MB total.
                 </FieldDescription>
-                <FieldError id="attachment-error">{attachmentError}</FieldError>
+                <FieldError id="attachments-error">
+                  {attachmentError}
+                </FieldError>
               </Field>
 
               {state.message ? (

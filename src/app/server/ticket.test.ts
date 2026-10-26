@@ -109,8 +109,8 @@ describe("createTicket", () => {
 
   it("rejects an unsupported attachment without writing anything", async () => {
     const data = formData(validTicket);
-    data.set(
-      "attachment",
+    data.append(
+      "attachments",
       new File(["payload"], "payload.exe", {
         type: "application/x-msdownload",
       }),
@@ -118,8 +118,8 @@ describe("createTicket", () => {
 
     const state = await createTicket({ status: "idle" }, data);
 
-    expect(state.errors?.attachment).toBe(
-      "Attachment must be a PNG, JPG, WEBP, or PDF file.",
+    expect(state.errors?.attachments).toBe(
+      "payload.exe: Attachment must be a PNG, JPG, or PDF file.",
     );
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
@@ -141,26 +141,44 @@ describe("createTicket", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("stores the attachment with the ticket", async () => {
+  it("stores multiple attachments with the ticket", async () => {
     const data = formData(validTicket);
-    const file = new File(["hello"], "screen.png", { type: "image/png" });
-    data.set("attachment", file);
+    const png = new File(
+      [
+        new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      ],
+      "screen.png",
+      { type: "image/png" },
+    );
+    const pdf = new File([new TextEncoder().encode("%PDF-1.4")], "ticket.pdf", {
+      type: "application/pdf",
+    });
+    data.append("attachments", png);
+    data.append("attachments", pdf);
 
     await expect(createTicket({ status: "idle" }, data)).rejects.toThrow(
       "REDIRECT:/dashboard",
     );
 
-    expect(mocks.txAttachmentCreate).toHaveBeenCalledTimes(1);
+    expect(mocks.txAttachmentCreate).toHaveBeenCalledTimes(2);
 
-    const payload = mocks.txAttachmentCreate.mock.calls[0][0];
+    const payloads = mocks.txAttachmentCreate.mock.calls.map(
+      (call) => call[0],
+    );
 
-    expect(payload).toMatchObject({
+    expect(payloads[0]).toMatchObject({
       ticketId: 42,
       fileName: "screen.png",
       contentType: "image/png",
-      size: 5,
+      size: 8,
     });
-    expect(payload.data).toBeInstanceOf(Uint8Array);
+    expect(payloads[0].data).toBeInstanceOf(Uint8Array);
+    expect(payloads[1]).toMatchObject({
+      ticketId: 42,
+      fileName: "ticket.pdf",
+      contentType: "application/pdf",
+      size: 8,
+    });
   });
 
   it("returns a generic message when the insert fails", async () => {

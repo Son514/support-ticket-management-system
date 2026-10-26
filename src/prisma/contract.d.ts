@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'bb30061b6c226146c166118d96df880cbfa294cc4e3800642cdf1939be6cbddf'>;
+  StorageHashBase<'8a0f74415d3d1a13b66cf050efa34fc6acb10ac852eb6b3c8111be0d5f1f4308'>;
 export type ExecutionHash =
   ExecutionHashBase<'67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c'>;
 export type ProfileHash =
@@ -658,8 +658,15 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [{ readonly columns: readonly ['ticketId'] }];
-              indexes: readonly [];
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'TicketAttachment_ticketId_idx_2fe526c3';
+                  readonly prefix: 'TicketAttachment_ticketId_idx';
+                  readonly columns: readonly ['ticketId'];
+                  readonly unique: false;
+                },
+              ];
               foreignKeys: readonly [
                 {
                   readonly source: {
