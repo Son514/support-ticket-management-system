@@ -31,6 +31,7 @@ vi.mock("@/prisma/db", () => ({
         Ticket: {
           where: mocks.ticketWhere,
           select: mocks.ticketSelect,
+          include: mocks.ticketInclude,
         },
         TicketAttachment: {
           where: mocks.attachmentWhere,
@@ -48,6 +49,7 @@ import {
   getAgentTicket,
   getTicketAttachment,
   listAgentQueue,
+  listAllTickets,
   listTicketAttachments,
   listTicketsForAccount,
 } from "./ticket";
@@ -446,5 +448,61 @@ describe("agent ticket detail queries", () => {
       "size",
       "data",
     );
+  });
+});
+
+describe("listAllTickets", () => {
+  beforeEach(() => {
+    mocks.ticketWhere.mockReset();
+    mocks.ticketSelect.mockReset();
+    mocks.ticketInclude.mockReset();
+    mocks.ticketOrderBy.mockReset();
+    mocks.ticketAll.mockReset();
+
+    mocks.ticketWhere.mockReturnValue({ select: mocks.ticketSelect });
+    mocks.ticketSelect.mockReturnValue({
+      orderBy: mocks.ticketOrderBy,
+      include: mocks.ticketInclude,
+    });
+    mocks.ticketInclude.mockReturnValue({
+      include: mocks.ticketInclude,
+      orderBy: mocks.ticketOrderBy,
+      all: mocks.ticketAll,
+    });
+    mocks.ticketOrderBy.mockReturnValue({ all: mocks.ticketAll });
+    mocks.ticketAll.mockResolvedValue([]);
+  });
+
+  it("lists every ticket with requester and assignee", async () => {
+    const rows = [{ id: 1, title: "Cannot log in" }];
+    mocks.ticketAll.mockResolvedValue(rows);
+
+    await expect(listAllTickets()).resolves.toEqual(rows);
+
+    expect(mocks.ticketWhere).not.toHaveBeenCalled();
+    expect(mocks.ticketSelect).toHaveBeenCalledWith(
+      "id",
+      "title",
+      "category",
+      "priority",
+      "status",
+      "createdAt",
+      "assigneeId",
+    );
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "account",
+      expect.any(Function),
+    );
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "assignee",
+      expect.any(Function),
+    );
+    expect(mocks.ticketOrderBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("filters by status when provided", async () => {
+    await listAllTickets("open");
+
+    expect(mocks.ticketWhere).toHaveBeenCalledWith({ status: "open" });
   });
 });

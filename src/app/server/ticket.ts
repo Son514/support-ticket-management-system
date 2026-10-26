@@ -12,6 +12,7 @@ import {
   validateAttachments,
   type TicketPriority,
   type TicketCategory,
+  type TicketStatus,
 } from "@/lib/ticket-schema";
 import { db } from "@/prisma/db";
 
@@ -257,4 +258,25 @@ export async function getTicketAttachment(
   })
     .select("id", "fileName", "contentType", "size", "data")
     .first();
+}
+
+export async function listAllTickets(status?: TicketStatus) {
+  const collection = status
+    ? db.orm.public.Ticket.where({ status })
+    : db.orm.public.Ticket;
+
+  return collection
+    .select(
+      "id",
+      "title",
+      "category",
+      "priority",
+      "status",
+      "createdAt",
+      "assigneeId",
+    )
+    .include("account", (account) => account.select("name", "email"))
+    .include("assignee", (assignee) => assignee.select("name", "email"))
+    .orderBy((ticket) => ticket.createdAt.desc())
+    .all();
 }
