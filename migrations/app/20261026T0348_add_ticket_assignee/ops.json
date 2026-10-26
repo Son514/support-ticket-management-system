@@ -1,0 +1,162 @@
+[
+  {
+    "id": "column.public.Ticket.assigneeId",
+    "label": "Add column \"assigneeId\" to \"Ticket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "assigneeId",
+        "table": "Ticket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"assigneeId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Ticket",
+          "assigneeId"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "column \"assigneeId\" on \"Ticket\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"assigneeId\"",
+        "sql": "ALTER TABLE \"public\".\"Ticket\" ADD COLUMN \"assigneeId\" int4"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"assigneeId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Ticket",
+          "assigneeId"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"assigneeId\" on \"Ticket\""
+        }
+      },
+      {
+        "description": "verify column \"assigneeId\" has type \"integer\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\"",
+        "params": [
+          "public",
+          "Ticket",
+          "assigneeId",
+          "integer"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Ticket.Ticket_assigneeId_idx_fd12ae38",
+    "label": "Create index \"Ticket_assigneeId_idx_fd12ae38\" on \"Ticket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Ticket_assigneeId_idx_fd12ae38",
+        "table": "Ticket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Ticket_assigneeId_idx_fd12ae38\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Ticket_assigneeId_idx_fd12ae38\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Ticket_assigneeId_idx_fd12ae38\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Ticket_assigneeId_idx_fd12ae38\"",
+        "sql": "CREATE INDEX \"Ticket_assigneeId_idx_fd12ae38\" ON \"public\".\"Ticket\" (\"assigneeId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Ticket_assigneeId_idx_fd12ae38\" exists on \"Ticket\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Ticket_assigneeId_idx_fd12ae38\"",
+          "i",
+          "I",
+          "\"public\".\"Ticket\"",
+          "btree",
+          "[\"assigneeId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Ticket.Ticket_assigneeId_fkey",
+    "label": "Add foreign key \"Ticket_assigneeId_fkey\" on \"Ticket\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Ticket_assigneeId_fkey",
+        "table": "Ticket"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Ticket_assigneeId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Ticket_assigneeId_fkey",
+          "public",
+          "\"public\".\"Ticket\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Ticket_assigneeId_fkey\" on \"Ticket\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Ticket_assigneeId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Ticket\"\nADD CONSTRAINT \"Ticket_assigneeId_fkey\"\nFOREIGN KEY (\"assigneeId\")\nREFERENCES \"public\".\"Account\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Ticket_assigneeId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Ticket_assigneeId_fkey",
+          "public",
+          "\"public\".\"Ticket\"",
+          "f",
+          "[\"assigneeId\"]",
+          "\"public\".\"Account\"",
+          "[\"id\"]",
+          "n",
+          "a"
+        ]
+      }
+    ]
+  }
+]

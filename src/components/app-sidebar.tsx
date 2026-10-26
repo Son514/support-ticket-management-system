@@ -50,8 +50,8 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: "Ticket",
+      url: "/dashboard",
       icon: (
         <TerminalSquareIcon
         />
@@ -59,16 +59,12 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "My tickets",
+          url: "/dashboard",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Create a ticket",
+          url: "/dashboard/tickets/new",
         },
       ],
     },

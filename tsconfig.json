@@ -15,7 +15,8 @@
     "jsx": "react-jsx",
     "incremental": true,
     "types": [
-      "node"
+      "node",
+      "bun"
     ],
     "plugins": [
       {

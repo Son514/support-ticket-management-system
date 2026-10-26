@@ -26,3 +26,52 @@ model PasswordResetToken {
   expiresAt Timestamptz
   createdAt temporal.CreatedAtString
 }
+
+enum TicketCategory {
+  @@type("pg/text@1")
+  technical = "technical"
+  billing   = "billing"
+  account   = "account"
+  general   = "general"
+}
+
+enum TicketPriority {
+  @@type("pg/text@1")
+  low    = "low"
+  medium = "medium"
+  high   = "high"
+  urgent = "urgent"
+}
+
+enum TicketStatus {
+  @@type("pg/text@1")
+  open        = "open"
+  in_progress = "in_progress"
+  resolved    = "resolved"
+  closed      = "closed"
+}
+
+model Ticket {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String
+  category    TicketCategory
+  priority    TicketPriority @default(medium)
+  status      TicketStatus   @default(open)
+  accountId   Int
+  account     Account        @relation("TicketRequester", fields: [accountId], references: [id], onDelete: Cascade)
+  assigneeId  Int?
+  assignee    Account?       @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt   temporal.CreatedAtString
+  updatedAt   temporal.UpdatedAtString
+}
+
+model TicketAttachment {
+  id          Int    @id @default(autoincrement())
+  storageKey  String @unique
+  fileName    String
+  contentType String
+  size        Int
+  ticketId    Int
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
