@@ -23,9 +23,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'a86d2fa17f5164d8ef45e30607b367ba213ceeee161ef9a716cb91f9b6e087c2'>;
+  StorageHashBase<'6351acfe1cb30ef43cea72d122daa75da9f16bc6077171fbf7489ecf9c562de9'>;
 export type ExecutionHash =
-  ExecutionHashBase<'381dc01b25037996bee88180088acfcfe92ca3fc0b641368c3749ebaaa8ef057'>;
+  ExecutionHashBase<'a88b23bef2d12682871be63583971d8940234fd2b239df3bc71c042c81c026f2'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -291,6 +291,7 @@ export type StorageColumnInputTypes = ColumnTypesFromStorage<
 
 export namespace Models {
   export type public_Account = {
+    authVersion: FieldOutputTypes['public']['Account']['authVersion'];
     createdAt: FieldOutputTypes['public']['Account']['createdAt'];
     email: FieldOutputTypes['public']['Account']['email'];
     id: FieldOutputTypes['public']['Account']['id'];
@@ -300,11 +301,21 @@ export namespace Models {
     updatedAt: FieldOutputTypes['public']['Account']['updatedAt'];
     readonly [RelationKeys]?: never;
   };
+  export type public_PasswordResetToken = {
+    accountId: FieldOutputTypes['public']['PasswordResetToken']['accountId'];
+    createdAt: FieldOutputTypes['public']['PasswordResetToken']['createdAt'];
+    expiresAt: FieldOutputTypes['public']['PasswordResetToken']['expiresAt'];
+    id: FieldOutputTypes['public']['PasswordResetToken']['id'];
+    tokenHash: FieldOutputTypes['public']['PasswordResetToken']['tokenHash'];
+    account: public_Account;
+    readonly [RelationKeys]?: 'account';
+  };
 }
 
 export declare const models: {
   public: {
     Account: Models.public_Account;
+    PasswordResetToken: Models.public_PasswordResetToken;
   };
 };
 
@@ -328,6 +339,16 @@ type ContractBase = Omit<
           readonly table: {
             readonly Account: {
               columns: {
+                readonly authVersion: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                  readonly many: false;
+                };
                 readonly createdAt: {
                   readonly dataType: 'pg/timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
@@ -384,6 +405,68 @@ type ContractBase = Omit<
               indexes: readonly [];
               foreignKeys: readonly [];
             };
+            readonly PasswordResetToken: {
+              columns: {
+                readonly accountId: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly createdAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly expiresAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                  readonly many: false;
+                };
+                readonly tokenHash: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['tokenHash'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'PasswordResetToken_accountId_idx_cbfb3085';
+                  readonly prefix: 'PasswordResetToken_accountId_idx';
+                  readonly columns: readonly ['accountId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'PasswordResetToken';
+                    readonly columns: readonly ['accountId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Account';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
           };
           readonly valueSet: {
             readonly AccountRole: {
@@ -402,6 +485,10 @@ type ContractBase = Omit<
   readonly targetFamily: 'sql';
   readonly roots: {
     readonly Account: { readonly namespace: 'public' & NamespaceId; readonly model: 'Account' };
+    readonly PasswordResetToken: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'PasswordResetToken';
+    };
   };
   readonly domain: {
     readonly namespaces: {
@@ -409,6 +496,10 @@ type ContractBase = Omit<
         readonly models: {
           readonly Account: {
             readonly fields: {
+              readonly authVersion: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -449,6 +540,7 @@ type ContractBase = Omit<
               readonly table: 'Account';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly authVersion: { readonly column: 'authVersion' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly email: { readonly column: 'email' };
                 readonly id: { readonly column: 'id' };
@@ -456,6 +548,61 @@ type ContractBase = Omit<
                 readonly password: { readonly column: 'password' };
                 readonly role: { readonly column: 'role' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly PasswordResetToken: {
+            readonly fields: {
+              readonly accountId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly expiresAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-temporal@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly tokenHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly account: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Account';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['accountId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'PasswordResetToken';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly accountId: { readonly column: 'accountId' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly expiresAt: { readonly column: 'expiresAt' };
+                readonly id: { readonly column: 'id' };
+                readonly tokenHash: { readonly column: 'tokenHash' };
               };
             };
           };
@@ -526,6 +673,14 @@ type ContractBase = Omit<
           readonly ref: {
             readonly entry: 'Account';
             readonly field: 'updatedAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'timestamptzStringNow'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'PasswordResetToken';
+            readonly field: 'createdAt';
             readonly namespace: 'public';
           };
         },

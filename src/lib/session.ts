@@ -6,6 +6,7 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type SessionPayload = {
   accountId: number;
+  version: number;
   expiresAt: number;
 };
 
@@ -33,13 +34,18 @@ function decode(value: string): SessionPayload | null {
       typeof parsed !== "object" ||
       parsed === null ||
       typeof parsed.accountId !== "number" ||
+      typeof parsed.version !== "number" ||
       typeof parsed.expiresAt !== "number" ||
       parsed.expiresAt <= Date.now()
     ) {
       return null;
     }
 
-    return { accountId: parsed.accountId, expiresAt: parsed.expiresAt };
+    return {
+      accountId: parsed.accountId,
+      version: parsed.version,
+      expiresAt: parsed.expiresAt,
+    };
   } catch {
     return null;
   }
@@ -59,9 +65,12 @@ function signaturesMatch(left: string, right: string): boolean {
   );
 }
 
-export async function createSession(accountId: number): Promise<void> {
+export async function createSession(
+  accountId: number,
+  version: number,
+): Promise<void> {
   const expiresAt = Date.now() + SESSION_TTL_MS;
-  const payload = encode({ accountId, expiresAt });
+  const payload = encode({ accountId, version, expiresAt });
   const cookieStore = await cookies();
 
   cookieStore.set(COOKIE_NAME, `${payload}.${sign(payload)}`, {
@@ -78,7 +87,10 @@ export async function destroySession(): Promise<void> {
   cookieStore.delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<{ accountId: number } | null> {
+export async function getSession(): Promise<{
+  accountId: number;
+  version: number;
+} | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
@@ -102,5 +114,7 @@ export async function getSession(): Promise<{ accountId: number } | null> {
 
   const session = decode(payload);
 
-  return session ? { accountId: session.accountId } : null;
+  return session
+    ? { accountId: session.accountId, version: session.version }
+    : null;
 }

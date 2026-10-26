@@ -23,9 +23,16 @@ export async function getCurrentAccount() {
   }
 
   return db.orm.public.Account
-    .select("id", "name", "email", "role")
+    .select("id", "name", "email", "role", "authVersion")
     .where({ id: session.accountId })
-    .first();
+    .first()
+    .then((account) => {
+      if (!account || account.authVersion !== session.version) {
+        return null;
+      }
+
+      return account;
+    });
 }
 
 export async function requireRole(role: AccountRole) {

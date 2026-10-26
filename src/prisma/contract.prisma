@@ -8,11 +8,21 @@ enum AccountRole {
 }
 
 model Account {
-  id        Int         @id @default(autoincrement())
-  name      String
-  email     String      @unique
-  password  String
-  role      AccountRole @default(customer)
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  password    String
+  role        AccountRole @default(customer)
+  authVersion Int         @default(0)
+  createdAt   temporal.CreatedAtString
+  updatedAt   temporal.UpdatedAtString
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  accountId Int
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt Timestamptz
   createdAt temporal.CreatedAtString
-  updatedAt temporal.UpdatedAtString
 }
