@@ -4,7 +4,6 @@ import {
 } from "@/app/server/ticket";
 import { getCurrentAccount } from "@/lib/auth";
 import { attachmentResponse } from "@/lib/attachment-response";
-import { attachmentFile } from "@/lib/storage";
 
 function notFound(): Response {
   return new Response(null, { status: 404 });
@@ -47,11 +46,5 @@ export async function GET(
     return notFound();
   }
 
-  const file = attachmentFile(attachment.storageKey);
-
-  if (!(await file.exists())) {
-    return notFound();
-  }
-
-  return attachmentResponse(attachment, file.stream() as BodyInit);
+  return attachmentResponse(attachment);
 }

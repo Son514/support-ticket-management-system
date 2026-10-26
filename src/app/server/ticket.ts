@@ -14,11 +14,6 @@ import {
   type TicketCategory,
   type TicketStatus,
 } from "@/lib/ticket-schema";
-import {
-  buildAttachmentStorageKey,
-  deleteAttachments,
-  uploadAttachment,
-} from "@/lib/storage";
 import { db } from "@/prisma/db";
 
 export type TicketField =
@@ -75,17 +70,7 @@ export async function createTicket(
   const category = parsed.data.category as TicketCategory;
   const priority = parsed.data.priority as TicketPriority;
 
-  const uploaded: { key: string; file: File }[] = [];
-
   try {
-    for (const attachment of validAttachments) {
-      const key = buildAttachmentStorageKey(attachment.name);
-      const data = new Uint8Array(await attachment.arrayBuffer());
-
-      await uploadAttachment(key, data);
-      uploaded.push({ key, file: attachment });
-    }
-
     await db.transaction(async (tx) => {
       const ticket = await tx.orm.public.Ticket.select("id").create({
         title,
@@ -96,18 +81,19 @@ export async function createTicket(
         accountId: account.id,
       });
 
-      for (const { key, file } of uploaded) {
+      for (const attachment of validAttachments) {
+        const data = new Uint8Array(await attachment.arrayBuffer());
+
         await tx.orm.public.TicketAttachment.create({
           ticketId: ticket.id,
-          storageKey: key,
-          fileName: file.name,
-          contentType: resolveAttachmentContentType(file),
-          size: file.size,
+          fileName: attachment.name,
+          contentType: resolveAttachmentContentType(attachment),
+          size: attachment.size,
+          data,
         });
       }
     });
   } catch (error) {
-    await deleteAttachments(uploaded.map(({ key }) => key));
     console.error("Failed to create ticket", error);
 
     return {
@@ -271,7 +257,7 @@ export async function getTicketAttachment(
     id: attachmentId,
     ticketId,
   })
-    .select("id", "fileName", "contentType", "size", "storageKey")
+    .select("id", "fileName", "contentType", "size", "data")
     .first();
 }
 

@@ -1,5 +1,4 @@
 import { module } from "@prisma/composer";
-import { bucket } from "@prisma/composer-prisma-cloud";
 import { postgres } from "@prisma/composer-prisma-cloud/orm";
 
 import { appContract } from "./src/prisma/composer.ts";
@@ -15,9 +14,5 @@ export default module("support-ticket-management-system", ({ provision }) => {
     { id: "database" },
   );
 
-  const attachments = provision(bucket({ name: "attachments" }), {
-    id: "attachments",
-  });
-
-  provision(app, { deps: { database, attachments } });
+  provision(app, { deps: { database } });
 });
