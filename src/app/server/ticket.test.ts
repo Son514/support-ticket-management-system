@@ -7,7 +7,15 @@ const mocks = vi.hoisted(() => ({
   ticketWhere: vi.fn(),
   ticketSelect: vi.fn(),
   ticketOrderBy: vi.fn(),
+  ticketInclude: vi.fn(),
   ticketAll: vi.fn(),
+  ticketFirst: vi.fn(),
+  ticketUpdate: vi.fn(),
+  attachmentWhere: vi.fn(),
+  attachmentSelect: vi.fn(),
+  attachmentOrderBy: vi.fn(),
+  attachmentAll: vi.fn(),
+  attachmentFirst: vi.fn(),
   transaction: vi.fn(),
   txTicketCreate: vi.fn(),
   txAttachmentCreate: vi.fn(),
@@ -24,13 +32,25 @@ vi.mock("@/prisma/db", () => ({
           where: mocks.ticketWhere,
           select: mocks.ticketSelect,
         },
+        TicketAttachment: {
+          where: mocks.attachmentWhere,
+        },
       },
     },
     transaction: mocks.transaction,
   },
 }));
 
-import { createTicket, listTicketsForAccount } from "./ticket";
+import {
+  agentCanViewTicket,
+  claimTicket,
+  createTicket,
+  getAgentTicket,
+  getTicketAttachment,
+  listAgentQueue,
+  listTicketAttachments,
+  listTicketsForAccount,
+} from "./ticket";
 
 function formData(values: Record<string, string>): FormData {
   const data = new FormData();
@@ -205,7 +225,10 @@ describe("listTicketsForAccount", () => {
     mocks.ticketAll.mockReset();
 
     mocks.ticketWhere.mockReturnValue({ select: mocks.ticketSelect });
-    mocks.ticketSelect.mockReturnValue({ orderBy: mocks.ticketOrderBy });
+    mocks.ticketSelect.mockReturnValue({
+      orderBy: mocks.ticketOrderBy,
+      include: mocks.ticketInclude,
+    });
     mocks.ticketOrderBy.mockReturnValue({ all: mocks.ticketAll });
     mocks.ticketAll.mockResolvedValue([]);
   });
@@ -238,5 +261,190 @@ describe("listTicketsForAccount", () => {
       accountId: 7,
       category: "billing",
     });
+  });
+});
+
+describe("listAgentQueue", () => {
+  beforeEach(() => {
+    mocks.ticketWhere.mockReset();
+    mocks.ticketSelect.mockReset();
+    mocks.ticketInclude.mockReset();
+    mocks.ticketAll.mockReset();
+
+    mocks.ticketWhere.mockReturnValue({ select: mocks.ticketSelect });
+    mocks.ticketSelect.mockReturnValue({ include: mocks.ticketInclude });
+    mocks.ticketInclude.mockReturnValue({ all: mocks.ticketAll });
+    mocks.ticketAll.mockResolvedValue([]);
+  });
+
+  it("splits unassigned and own tickets, sorted by priority", async () => {
+    mocks.ticketAll.mockResolvedValue([
+      { id: 1, assigneeId: null, priority: "low", createdAt: "2026-01-01" },
+      { id: 2, assigneeId: 7, priority: "urgent", createdAt: "2026-01-02" },
+      { id: 3, assigneeId: 7, priority: "high", createdAt: "2026-01-03" },
+      { id: 4, assigneeId: null, priority: "urgent", createdAt: "2026-01-04" },
+      { id: 5, assigneeId: 8, priority: "urgent", createdAt: "2026-01-05" },
+    ]);
+
+    const result = await listAgentQueue(7);
+
+    expect(result.unassigned.map((ticket) => ticket.id)).toEqual([4, 1]);
+    expect(result.assigned.map((ticket) => ticket.id)).toEqual([2, 3]);
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "account",
+      expect.any(Function),
+    );
+  });
+});
+
+describe("claimTicket", () => {
+  beforeEach(() => {
+    mocks.redirect.mockImplementation((url: string) => {
+      throw new Error(`REDIRECT:${url}`);
+    });
+    mocks.revalidatePath.mockReset();
+    mocks.requireRole.mockReset();
+    mocks.requireRole.mockResolvedValue(account);
+    mocks.ticketWhere.mockReset();
+    mocks.ticketWhere.mockReturnValue({ update: mocks.ticketUpdate });
+    mocks.ticketUpdate.mockReset();
+    mocks.ticketUpdate.mockResolvedValue({ id: 5 });
+  });
+
+  it("assigns the ticket to the agent and marks it in progress", async () => {
+    await expect(
+      claimTicket(formData({ ticketId: "5" })),
+    ).rejects.toThrow("REDIRECT:/agent");
+
+    expect(mocks.requireRole).toHaveBeenCalledWith("agent");
+    expect(mocks.ticketUpdate).toHaveBeenCalledWith({
+      assigneeId: 7,
+      status: "in_progress",
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/agent");
+  });
+
+  it("redirects without updating for an invalid ticket id", async () => {
+    await expect(
+      claimTicket(formData({ ticketId: "not-a-number" })),
+    ).rejects.toThrow("REDIRECT:/agent");
+
+    expect(mocks.ticketUpdate).not.toHaveBeenCalled();
+  });
+
+  it("stops when the agent role check redirects", async () => {
+    mocks.requireRole.mockRejectedValue(new Error("REDIRECT:/login"));
+
+    await expect(
+      claimTicket(formData({ ticketId: "5" })),
+    ).rejects.toThrow("REDIRECT:/login");
+
+    expect(mocks.ticketUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("agent ticket detail queries", () => {
+  beforeEach(() => {
+    mocks.ticketWhere.mockReset();
+    mocks.ticketSelect.mockReset();
+    mocks.ticketInclude.mockReset();
+    mocks.ticketFirst.mockReset();
+    mocks.attachmentWhere.mockReset();
+    mocks.attachmentSelect.mockReset();
+    mocks.attachmentOrderBy.mockReset();
+    mocks.attachmentAll.mockReset();
+    mocks.attachmentFirst.mockReset();
+
+    mocks.ticketWhere.mockReturnValue({ select: mocks.ticketSelect });
+    mocks.ticketSelect.mockReturnValue({
+      orderBy: mocks.ticketOrderBy,
+      include: mocks.ticketInclude,
+      first: mocks.ticketFirst,
+    });
+    mocks.ticketInclude.mockReturnValue({
+      all: mocks.ticketAll,
+      first: mocks.ticketFirst,
+    });
+
+    mocks.attachmentWhere.mockReturnValue({
+      select: mocks.attachmentSelect,
+    });
+    mocks.attachmentSelect.mockReturnValue({
+      orderBy: mocks.attachmentOrderBy,
+      first: mocks.attachmentFirst,
+    });
+    mocks.attachmentOrderBy.mockReturnValue({ all: mocks.attachmentAll });
+    mocks.attachmentAll.mockResolvedValue([]);
+    mocks.attachmentFirst.mockResolvedValue(null);
+  });
+
+  it("reports whether the agent can view a ticket", async () => {
+    mocks.ticketFirst.mockResolvedValue({ id: 5 });
+    await expect(agentCanViewTicket(7, 5)).resolves.toBe(true);
+
+    mocks.ticketFirst.mockResolvedValue(null);
+    await expect(agentCanViewTicket(7, 5)).resolves.toBe(false);
+  });
+
+  it("loads a visible ticket with the requester only", async () => {
+    const row = {
+      id: 5,
+      title: "Cannot log in",
+      account: { name: "Jane", email: "jane@example.com" },
+    };
+    mocks.ticketFirst.mockResolvedValue(row);
+
+    await expect(getAgentTicket(7, 5)).resolves.toEqual(row);
+
+    expect(mocks.ticketInclude).toHaveBeenCalledWith(
+      "account",
+      expect.any(Function),
+    );
+  });
+
+  it("returns null for an invisible ticket", async () => {
+    mocks.ticketFirst.mockResolvedValue(null);
+
+    await expect(getAgentTicket(7, 5)).resolves.toBeNull();
+  });
+
+  it("lists attachment metadata without the data blob", async () => {
+    const rows = [{ id: 1, fileName: "screen.png", size: 8 }];
+    mocks.attachmentAll.mockResolvedValue(rows);
+
+    await expect(listTicketAttachments(5)).resolves.toEqual(rows);
+
+    expect(mocks.attachmentWhere).toHaveBeenCalledWith({ ticketId: 5 });
+    expect(mocks.attachmentSelect).toHaveBeenCalledWith(
+      "id",
+      "fileName",
+      "contentType",
+      "size",
+    );
+  });
+
+  it("loads one attachment including its data for download", async () => {
+    const row = {
+      id: 2,
+      fileName: "screen.png",
+      contentType: "image/png",
+      size: 8,
+      data: new Uint8Array([1, 2, 3]),
+    };
+    mocks.attachmentFirst.mockResolvedValue(row);
+
+    await expect(getTicketAttachment(5, 2)).resolves.toEqual(row);
+
+    expect(mocks.attachmentWhere).toHaveBeenCalledWith({
+      id: 2,
+      ticketId: 5,
+    });
+    expect(mocks.attachmentSelect).toHaveBeenCalledWith(
+      "id",
+      "fileName",
+      "contentType",
+      "size",
+      "data",
+    );
   });
 });

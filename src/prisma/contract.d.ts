@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8a0f74415d3d1a13b66cf050efa34fc6acb10ac852eb6b3c8111be0d5f1f4308'>;
+  StorageHashBase<'338309c95dedc5ac73090773a50a5d74cdd5d1455627ec9f515708a7dd55b454'>;
 export type ExecutionHash =
   ExecutionHashBase<'67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c'>;
 export type ProfileHash =
@@ -340,6 +340,7 @@ export namespace Models {
   };
   export type public_Ticket = {
     accountId: FieldOutputTypes['public']['Ticket']['accountId'];
+    assigneeId: FieldOutputTypes['public']['Ticket']['assigneeId'];
     category: FieldOutputTypes['public']['Ticket']['category'];
     createdAt: FieldOutputTypes['public']['Ticket']['createdAt'];
     description: FieldOutputTypes['public']['Ticket']['description'];
@@ -349,7 +350,8 @@ export namespace Models {
     title: FieldOutputTypes['public']['Ticket']['title'];
     updatedAt: FieldOutputTypes['public']['Ticket']['updatedAt'];
     account: public_Account;
-    readonly [RelationKeys]?: 'account';
+    assignee: public_Account | null;
+    readonly [RelationKeys]?: 'account' | 'assignee';
   };
   export type public_TicketAttachment = {
     contentType: FieldOutputTypes['public']['TicketAttachment']['contentType'];
@@ -528,6 +530,12 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly many: false;
                 };
+                readonly assigneeId: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly category: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -598,6 +606,12 @@ type ContractBase = Omit<
                   readonly columns: readonly ['accountId'];
                   readonly unique: false;
                 },
+                {
+                  readonly name: 'Ticket_assigneeId_idx_fd12ae38';
+                  readonly prefix: 'Ticket_assigneeId_idx';
+                  readonly columns: readonly ['assigneeId'];
+                  readonly unique: false;
+                },
               ];
               foreignKeys: readonly [
                 {
@@ -605,6 +619,18 @@ type ContractBase = Omit<
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'Ticket';
                     readonly columns: readonly ['accountId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Account';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Ticket';
+                    readonly columns: readonly ['assigneeId'];
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
@@ -844,6 +870,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
+              readonly assigneeId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly category: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -896,12 +926,25 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['id'];
                 };
               };
+              readonly assignee: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Account';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['assigneeId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
             };
             readonly storage: {
               readonly table: 'Ticket';
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly accountId: { readonly column: 'accountId' };
+                readonly assigneeId: { readonly column: 'assigneeId' };
                 readonly category: { readonly column: 'category' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly description: { readonly column: 'description' };

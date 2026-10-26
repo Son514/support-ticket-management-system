@@ -291,6 +291,13 @@
                   "kind": "scalar"
                 }
               },
+              "assigneeId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "category": {
                 "nullable": false,
                 "type": {
@@ -382,12 +389,31 @@
                   "model": "Account",
                   "namespace": "public"
                 }
+              },
+              "assignee": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "assigneeId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Account",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
               "fields": {
                 "accountId": {
                   "column": "accountId"
+                },
+                "assigneeId": {
+                  "column": "assigneeId"
                 },
                 "category": {
                   "column": "category"
@@ -699,6 +725,11 @@
                   "dataType": "pg/int4",
                   "nullable": false
                 },
+                "assigneeId": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": true
+                },
                 "category": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -790,6 +821,26 @@
                     "namespaceId": "public",
                     "tableName": "Account"
                   }
+                },
+                {
+                  "index": {
+                    "name": "Ticket_assigneeId_idx_fd12ae38"
+                  },
+                  "onDelete": "setNull",
+                  "source": {
+                    "columns": [
+                      "assigneeId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Ticket"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Account"
+                  }
                 }
               ],
               "indexes": [
@@ -799,6 +850,14 @@
                   ],
                   "name": "Ticket_accountId_idx_cbfb3085",
                   "prefix": "Ticket_accountId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "assigneeId"
+                  ],
+                  "name": "Ticket_assigneeId_idx_fd12ae38",
+                  "prefix": "Ticket_assigneeId_idx",
                   "unique": false
                 }
               ],
@@ -928,7 +987,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8a0f74415d3d1a13b66cf050efa34fc6acb10ac852eb6b3c8111be0d5f1f4308"
+    "storageHash": "338309c95dedc5ac73090773a50a5d74cdd5d1455627ec9f515708a7dd55b454"
   },
   "execution": {
     "executionHash": "67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c",

@@ -59,7 +59,9 @@ model Ticket {
   priority    TicketPriority @default(medium)
   status      TicketStatus   @default(open)
   accountId   Int
-  account     Account        @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  account     Account        @relation("TicketRequester", fields: [accountId], references: [id], onDelete: Cascade)
+  assigneeId  Int?
+  assignee    Account?       @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdAt   temporal.CreatedAtString
   updatedAt   temporal.UpdatedAtString
 }
