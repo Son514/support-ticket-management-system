@@ -22,5 +22,5 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - uses: prisma/cloud-deploy-action@v1
         with:
-          build-command: bun run build
+          build-command: bun run test && bun run build
           module: module.ts

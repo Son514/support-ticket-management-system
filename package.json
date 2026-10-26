@@ -21,6 +21,8 @@
     "migration:show": "prisma migration show",
     "migration:status": "prisma migration status",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
@@ -60,7 +62,8 @@
     "prisma": "^8.0.0-rc.27",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "effect": "4.0.3",
