@@ -19,18 +19,11 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   txTicketCreate: vi.fn(),
   txAttachmentCreate: vi.fn(),
-  uploadAttachment: vi.fn(),
-  deleteAttachments: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/lib/auth", () => ({ requireRole: mocks.requireRole }));
-vi.mock("@/lib/storage", () => ({
-  buildAttachmentStorageKey: (fileName: string) => `tickets/test-${fileName}`,
-  uploadAttachment: mocks.uploadAttachment,
-  deleteAttachments: mocks.deleteAttachments,
-}));
 vi.mock("@/prisma/db", () => ({
   db: {
     orm: {
@@ -109,10 +102,6 @@ describe("createTicket", () => {
     mocks.txTicketCreate.mockResolvedValue({ id: 42 });
     mocks.txAttachmentCreate.mockReset();
     mocks.txAttachmentCreate.mockResolvedValue({});
-    mocks.uploadAttachment.mockReset();
-    mocks.uploadAttachment.mockResolvedValue(undefined);
-    mocks.deleteAttachments.mockReset();
-    mocks.deleteAttachments.mockResolvedValue(undefined);
   });
 
   it("stops when the customer role check redirects", async () => {
@@ -196,14 +185,6 @@ describe("createTicket", () => {
     );
 
     expect(mocks.txAttachmentCreate).toHaveBeenCalledTimes(2);
-    expect(mocks.uploadAttachment).toHaveBeenCalledTimes(2);
-    expect(mocks.uploadAttachment.mock.calls[0][0]).toBe(
-      "tickets/test-screen.png",
-    );
-    expect(mocks.uploadAttachment.mock.calls[0][1]).toBeInstanceOf(Uint8Array);
-    expect(mocks.uploadAttachment.mock.calls[1][0]).toBe(
-      "tickets/test-ticket.pdf",
-    );
 
     const payloads = mocks.txAttachmentCreate.mock.calls.map(
       (call) => call[0],
@@ -211,68 +192,31 @@ describe("createTicket", () => {
 
     expect(payloads[0]).toMatchObject({
       ticketId: 42,
-      storageKey: "tickets/test-screen.png",
       fileName: "screen.png",
       contentType: "image/png",
       size: 8,
     });
-    expect(payloads[0]).not.toHaveProperty("data");
+    expect(payloads[0].data).toBeInstanceOf(Uint8Array);
     expect(payloads[1]).toMatchObject({
       ticketId: 42,
-      storageKey: "tickets/test-ticket.pdf",
       fileName: "ticket.pdf",
       contentType: "application/pdf",
       size: 8,
     });
-    expect(mocks.deleteAttachments).not.toHaveBeenCalled();
   });
 
   it("returns a generic message when the insert fails", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     mocks.transaction.mockRejectedValue(new Error("database down"));
 
-    const data = formData(validTicket);
-    data.append(
-      "attachments",
-      new File(
-        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
-        "screen.png",
-        { type: "image/png" },
-      ),
+    const state = await createTicket(
+      { status: "idle" },
+      formData(validTicket),
     );
-
-    const state = await createTicket({ status: "idle" }, data);
 
     expect(state.message).toBe(
       "Could not create your ticket. Please try again.",
     );
-    expect(error).toHaveBeenCalled();
-    expect(mocks.deleteAttachments).toHaveBeenCalledWith([
-      "tickets/test-screen.png",
-    ]);
-  });
-
-  it("returns a generic message when an upload fails", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    mocks.uploadAttachment.mockRejectedValue(new Error("storage down"));
-
-    const data = formData(validTicket);
-    data.append(
-      "attachments",
-      new File(
-        [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34])],
-        "ticket.pdf",
-        { type: "application/pdf" },
-      ),
-    );
-
-    const state = await createTicket({ status: "idle" }, data);
-
-    expect(state.message).toBe(
-      "Could not create your ticket. Please try again.",
-    );
-    expect(mocks.transaction).not.toHaveBeenCalled();
-    expect(mocks.deleteAttachments).toHaveBeenCalledWith([]);
     expect(error).toHaveBeenCalled();
   });
 });
@@ -494,7 +438,7 @@ describe("agent ticket detail queries", () => {
       fileName: "screen.png",
       contentType: "image/png",
       size: 8,
-      storageKey: "tickets/abc.png",
+      data: new Uint8Array([1, 2, 3]),
     };
     mocks.attachmentFirst.mockResolvedValue(row);
 
@@ -509,7 +453,7 @@ describe("agent ticket detail queries", () => {
       "fileName",
       "contentType",
       "size",
-      "storageKey",
+      "data",
     );
   });
 });

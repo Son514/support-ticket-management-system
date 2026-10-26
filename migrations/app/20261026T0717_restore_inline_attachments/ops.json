@@ -1,0 +1,154 @@
+[
+  {
+    "id": "data.clear-ticket-attachments",
+    "label": "Delete object-storage ticket attachments",
+    "summary": "Deletes attachment rows before restoring the inline data column",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "TicketAttachment"
+      }
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "delete ticket attachment rows",
+        "sql": "DELETE FROM \"public\".\"TicketAttachment\""
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "alterNullability.dropNotNull.TicketAttachment.storageKey",
+    "label": "Drop NOT NULL on \"TicketAttachment\".\"storageKey\"",
+    "operationClass": "widening",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "storageKey",
+        "table": "TicketAttachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"storageKey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"storageKey\" on \"TicketAttachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop NOT NULL on \"storageKey\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" ALTER COLUMN \"storageKey\" DROP NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"storageKey\" is nullable",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "storageKey",
+          "YES"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.TicketAttachment.data",
+    "label": "Add column data to TicketAttachment",
+    "summary": "Adds column data to table TicketAttachment",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "TicketAttachment"
+      }
+    },
+    "operationClass": "additive",
+    "precheck": [
+      {
+        "description": "ensure column \"data\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "column \"data\" on \"TicketAttachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"data\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" ADD COLUMN \"data\" bytea DEFAULT (''::bytea) NOT NULL"
+      },
+      {
+        "description": "drop temporary default from column \"data\"",
+        "sql": "ALTER TABLE \"public\".\"TicketAttachment\" ALTER COLUMN \"data\" DROP DEFAULT"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"data\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"data\" on \"TicketAttachment\""
+        }
+      },
+      {
+        "description": "verify column \"data\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data",
+          "NO"
+        ]
+      },
+      {
+        "description": "verify column \"data\" has no default after temporary default removal",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"column_default\" IS NOT NULL)) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data"
+        ]
+      },
+      {
+        "description": "verify column \"data\" has type \"bytea\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\"",
+        "params": [
+          "public",
+          "TicketAttachment",
+          "data",
+          "bytea"
+        ]
+      }
+    ]
+  }
+]

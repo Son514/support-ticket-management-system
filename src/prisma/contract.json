@@ -453,6 +453,13 @@
                   "kind": "scalar"
                 }
               },
+              "data": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bytea@1",
+                  "kind": "scalar"
+                }
+              },
               "fileName": {
                 "nullable": false,
                 "type": {
@@ -475,7 +482,7 @@
                 }
               },
               "storageKey": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -511,6 +518,9 @@
               "fields": {
                 "contentType": {
                   "column": "contentType"
+                },
+                "data": {
+                  "column": "data"
                 },
                 "fileName": {
                   "column": "fileName"
@@ -875,6 +885,11 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "data": {
+                  "codecId": "pg/bytea@1",
+                  "dataType": "pg/bytea",
+                  "nullable": false
+                },
                 "fileName": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -897,7 +912,7 @@
                 "storageKey": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
-                  "nullable": false
+                  "nullable": true
                 },
                 "ticketId": {
                   "codecId": "pg/int4@1",
@@ -993,7 +1008,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "335d3b42cc48793d5bc93b197da202fac90803f384ec5713896cb25277bef987"
+    "storageHash": "3359a2bc9f5811fc614f04dc9c2f00e3041ad840fb4ebd4fc427333669b97ce3"
   },
   "execution": {
     "executionHash": "67a6182b1a9f40f2b03a229406cb0ee6f1309f5f6feb5c73d6e08d1ec2e6912c",

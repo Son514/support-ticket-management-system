@@ -67,11 +67,12 @@ model Ticket {
 }
 
 model TicketAttachment {
-  id          Int    @id @default(autoincrement())
-  storageKey  String @unique
+  id          Int     @id @default(autoincrement())
+  storageKey  String? @unique // legacy object-storage key; no longer written
   fileName    String
   contentType String
   size        Int
+  data        Bytes
   ticketId    Int
-  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket      Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }
