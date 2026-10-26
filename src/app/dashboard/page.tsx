@@ -3,14 +3,17 @@ import { PlusIcon, TicketIcon } from "lucide-react";
 
 import { listTicketsForAccount } from "@/app/server/ticket";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { TicketCategoryFilter } from "@/components/ticket-category-filter";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireRole } from "@/lib/auth";
 import {
+  TICKET_CATEGORIES,
   TICKET_CATEGORY_LABELS,
   TICKET_PRIORITY_LABELS,
   TICKET_STATUS_LABELS,
+  type TicketCategory,
   type TicketPriority,
 } from "@/lib/ticket-schema";
 
@@ -43,9 +46,19 @@ function priorityVariant(
   }
 }
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string | string[] }>;
+}) {
   const account = await requireRole("customer");
-  const tickets = await listTicketsForAccount(account.id);
+  const params = await searchParams;
+  const requested =
+    typeof params.category === "string" ? params.category : undefined;
+  const category = TICKET_CATEGORIES.includes(requested as TicketCategory)
+    ? (requested as TicketCategory)
+    : undefined;
+  const tickets = await listTicketsForAccount(account.id, category);
 
   return (
     <DashboardShell breadcrumbs={[{ label: "Dashboard" }]}>
@@ -62,26 +75,59 @@ export default async function Page() {
         </Link>
       </div>
 
+      {tickets.length > 0 || category ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TicketCategoryFilter value={category} />
+          <p className="text-sm text-muted-foreground">
+            {tickets.length} {tickets.length === 1 ? "ticket" : "tickets"}
+          </p>
+        </div>
+      ) : null}
+
       {tickets.length === 0 ? (
-        <Card size="sm">
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-muted">
-              <TicketIcon className="size-6 text-muted-foreground" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-medium">No tickets yet</h2>
-              <p className="text-sm text-muted-foreground">
-                When you submit a ticket, it will show up here.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/tickets/new"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              Create your first ticket
-            </Link>
-          </CardContent>
-        </Card>
+        category ? (
+          <Card size="sm">
+            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <TicketIcon className="size-6 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="font-medium">
+                  No {TICKET_CATEGORY_LABELS[category]} tickets
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  You haven&apos;t submitted any tickets in this category.
+                </p>
+              </div>
+              <Link
+                href="/dashboard"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Clear filter
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card size="sm">
+            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <TicketIcon className="size-6 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="font-medium">No tickets yet</h2>
+                <p className="text-sm text-muted-foreground">
+                  When you submit a ticket, it will show up here.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/tickets/new"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Create your first ticket
+              </Link>
+            </CardContent>
+          </Card>
+        )
       ) : (
         <ul className="grid gap-3">
           {tickets.map((ticket) => (

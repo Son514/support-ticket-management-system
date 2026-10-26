@@ -210,4 +210,15 @@ describe("listTicketsForAccount", () => {
     );
     expect(mocks.ticketOrderBy).toHaveBeenCalledTimes(1);
   });
+
+  it("adds the category filter when provided", async () => {
+    mocks.ticketAll.mockResolvedValue([]);
+
+    await listTicketsForAccount(7, "billing");
+
+    expect(mocks.ticketWhere).toHaveBeenCalledWith({
+      accountId: 7,
+      category: "billing",
+    });
+  });
 });

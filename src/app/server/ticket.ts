@@ -104,8 +104,13 @@ export async function createTicket(
   redirect("/dashboard");
 }
 
-export async function listTicketsForAccount(accountId: number) {
-  return db.orm.public.Ticket.where({ accountId })
+export async function listTicketsForAccount(
+  accountId: number,
+  category?: TicketCategory,
+) {
+  const where = category ? { accountId, category } : { accountId };
+
+  return db.orm.public.Ticket.where(where)
     .select(
       "id",
       "title",
