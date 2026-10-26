@@ -1,0 +1,269 @@
+[
+  {
+    "id": "table.PasswordResetToken",
+    "label": "Create table \"PasswordResetToken\"",
+    "summary": "Creates table \"PasswordResetToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PasswordResetToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PasswordResetToken\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PasswordResetToken\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"PasswordResetToken\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PasswordResetToken\"",
+        "sql": "CREATE TABLE \"public\".\"PasswordResetToken\" (\n  \"accountId\" int4 NOT NULL,\n  \"createdAt\" timestamptz NOT NULL,\n  \"expiresAt\" timestamptz NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"tokenHash\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PasswordResetToken\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"PasswordResetToken\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"PasswordResetToken\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "column.public.Account.authVersion",
+    "label": "Add column \"authVersion\" to \"Account\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "authVersion",
+        "table": "Account"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"authVersion\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Account",
+          "authVersion"
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "column \"authVersion\" on \"Account\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"authVersion\"",
+        "sql": "ALTER TABLE \"public\".\"Account\" ADD COLUMN \"authVersion\" int4 DEFAULT 0 NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"authVersion\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Account",
+          "authVersion"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "column \"authVersion\" on \"Account\""
+        }
+      },
+      {
+        "description": "verify column \"authVersion\" has type \"integer\"",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\"",
+        "params": [
+          "public",
+          "Account",
+          "authVersion",
+          "integer"
+        ]
+      },
+      {
+        "description": "verify column \"authVersion\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "Account",
+          "authVersion",
+          "NO"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PasswordResetToken.PasswordResetToken_tokenHash_key",
+    "label": "Add unique constraint on \"PasswordResetToken\" (tokenHash)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PasswordResetToken_tokenHash_key",
+        "table": "PasswordResetToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PasswordResetToken_tokenHash_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PasswordResetToken_tokenHash_key",
+          "public",
+          "\"public\".\"PasswordResetToken\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"PasswordResetToken_tokenHash_key\" on \"PasswordResetToken\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PasswordResetToken_tokenHash_key\"",
+        "sql": "ALTER TABLE \"public\".\"PasswordResetToken\" ADD CONSTRAINT \"PasswordResetToken_tokenHash_key\" UNIQUE (\"tokenHash\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"PasswordResetToken_tokenHash_key\" exists on (tokenHash)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "PasswordResetToken_tokenHash_key",
+          "public",
+          "\"public\".\"PasswordResetToken\"",
+          "u",
+          "[\"tokenHash\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.PasswordResetToken.PasswordResetToken_accountId_idx_cbfb3085",
+    "label": "Create index \"PasswordResetToken_accountId_idx_cbfb3085\" on \"PasswordResetToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "PasswordResetToken_accountId_idx_cbfb3085",
+        "table": "PasswordResetToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"PasswordResetToken_accountId_idx_cbfb3085\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PasswordResetToken_accountId_idx_cbfb3085\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"PasswordResetToken_accountId_idx_cbfb3085\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"PasswordResetToken_accountId_idx_cbfb3085\"",
+        "sql": "CREATE INDEX \"PasswordResetToken_accountId_idx_cbfb3085\" ON \"public\".\"PasswordResetToken\" (\"accountId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"PasswordResetToken_accountId_idx_cbfb3085\" exists on \"PasswordResetToken\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"PasswordResetToken_accountId_idx_cbfb3085\"",
+          "i",
+          "I",
+          "\"public\".\"PasswordResetToken\"",
+          "btree",
+          "[\"accountId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.PasswordResetToken.PasswordResetToken_accountId_fkey",
+    "label": "Add foreign key \"PasswordResetToken_accountId_fkey\" on \"PasswordResetToken\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "PasswordResetToken_accountId_fkey",
+        "table": "PasswordResetToken"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"PasswordResetToken_accountId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PasswordResetToken_accountId_fkey",
+          "public",
+          "\"public\".\"PasswordResetToken\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"PasswordResetToken_accountId_fkey\" on \"PasswordResetToken\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"PasswordResetToken_accountId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"PasswordResetToken\"\nADD CONSTRAINT \"PasswordResetToken_accountId_fkey\"\nFOREIGN KEY (\"accountId\")\nREFERENCES \"public\".\"Account\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"PasswordResetToken_accountId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "PasswordResetToken_accountId_fkey",
+          "public",
+          "\"public\".\"PasswordResetToken\"",
+          "f",
+          "[\"accountId\"]",
+          "\"public\".\"Account\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  }
+]

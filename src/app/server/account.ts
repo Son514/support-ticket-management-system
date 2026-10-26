@@ -1,7 +1,6 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
 import {
   accountSchema,
@@ -10,8 +9,9 @@ import {
   type LoginField,
 } from "@/lib/account-schema";
 import { destinationForRole } from "@/lib/auth";
+import { fieldErrors } from "@/lib/field-errors";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { createSession } from "@/lib/session";
+import { createSession, destroySession } from "@/lib/session";
 import { db } from "@/prisma/db";
 
 export type RegisterState = {
@@ -29,26 +29,6 @@ export type LoginState = {
 function text(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
-}
-
-function fieldErrors<Field extends string>(
-  error: z.ZodError,
-): Partial<Record<Field, string>> {
-  const flattened = z.flattenError(error).fieldErrors as Record<
-    string,
-    string[] | undefined
-  >;
-  const errors: Partial<Record<Field, string>> = {};
-
-  for (const [field, messages] of Object.entries(flattened)) {
-    const message = messages?.[0];
-
-    if (message) {
-      errors[field as Field] = message;
-    }
-  }
-
-  return errors;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -140,6 +120,7 @@ export async function loginAccount(
 
   let accountId: number | null = null;
   let accountRole = "customer";
+  let accountVersion = 0;
 
   try {
     const account = await db.orm.public.Account.where({ email }).first();
@@ -158,6 +139,7 @@ export async function loginAccount(
 
     accountId = account.id;
     accountRole = account.role;
+    accountVersion = account.authVersion;
   } catch (error) {
     console.error("Failed to look up account", error);
 
@@ -172,7 +154,7 @@ export async function loginAccount(
   }
 
   try {
-    await createSession(accountId);
+    await createSession(accountId, accountVersion);
   } catch (error) {
     console.error("Failed to create session", error);
 
@@ -183,4 +165,9 @@ export async function loginAccount(
   }
 
   redirect(destinationForRole(accountRole));
+}
+
+export async function logoutAccount(): Promise<void> {
+  await destroySession();
+  redirect("/login");
 }

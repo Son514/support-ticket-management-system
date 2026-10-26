@@ -7,6 +7,10 @@
     "Account": {
       "model": "Account",
       "namespace": "public"
+    },
+    "PasswordResetToken": {
+      "model": "PasswordResetToken",
+      "namespace": "public"
     }
   },
   "domain": {
@@ -34,6 +38,13 @@
         "models": {
           "Account": {
             "fields": {
+              "authVersion": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -93,6 +104,9 @@
             "relations": {},
             "storage": {
               "fields": {
+                "authVersion": {
+                  "column": "authVersion"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -118,6 +132,84 @@
               "namespaceId": "public",
               "table": "Account"
             }
+          },
+          "PasswordResetToken": {
+            "fields": {
+              "accountId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "expiresAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "tokenHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "account": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "accountId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Account",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "accountId": {
+                  "column": "accountId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "expiresAt": {
+                  "column": "expiresAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "tokenHash": {
+                  "column": "tokenHash"
+                }
+              },
+              "namespaceId": "public",
+              "table": "PasswordResetToken"
+            }
           }
         }
       }
@@ -137,6 +229,15 @@
                 }
               ],
               "columns": {
+                "authVersion": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nullable": false
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "dataType": "pg/timestamptz",
@@ -201,6 +302,83 @@
                   ]
                 }
               ]
+            },
+            "PasswordResetToken": {
+              "columns": {
+                "accountId": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "expiresAt": {
+                  "codecId": "pg/timestamptz-temporal@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nullable": false
+                },
+                "tokenHash": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "PasswordResetToken_accountId_idx_cbfb3085"
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "accountId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "PasswordResetToken"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Account"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "accountId"
+                  ],
+                  "name": "PasswordResetToken_accountId_idx_cbfb3085",
+                  "prefix": "PasswordResetToken_accountId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "tokenHash"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
@@ -218,10 +396,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a86d2fa17f5164d8ef45e30607b367ba213ceeee161ef9a716cb91f9b6e087c2"
+    "storageHash": "6351acfe1cb30ef43cea72d122daa75da9f16bc6077171fbf7489ecf9c562de9"
   },
   "execution": {
-    "executionHash": "381dc01b25037996bee88180088acfcfe92ca3fc0b641368c3749ebaaa8ef057",
+    "executionHash": "a88b23bef2d12682871be63583971d8940234fd2b239df3bc71c042c81c026f2",
     "mutations": {
       "defaults": [
         {
@@ -247,6 +425,17 @@
           "ref": {
             "entry": "Account",
             "field": "updatedAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestamptzStringNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "PasswordResetToken",
+            "field": "createdAt",
             "namespace": "public"
           }
         }
